@@ -11,5 +11,6 @@ router.get('/activity-chart', dashboardController.getActivityChart);
 router.get('/user-growth', dashboardController.getUserGrowth);
 router.get('/module-usage', dashboardController.getModuleUsage);
 router.get('/widget', dashboardController.getWidgetData);
+router.get('/erp', dashboardController.getERPDashboard);
 
 module.exports = router;
