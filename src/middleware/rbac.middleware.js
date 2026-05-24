@@ -18,12 +18,18 @@ const hasPermission = (permissionSlug) => {
         return next();
       }
 
-      // Check role permissions
+      // Check role permissions (use pre-loaded permissions when available,
+      // fall back to DB query if the include didn't hydrate them).
       const role = req.user.role;
       if (role) {
-        const permissions = await role.getPermissions({ where: { slug: permissionSlug } });
-        if (permissions.length > 0) {
-          return next();
+        const preLoaded = req.user.role.permissions;
+        if (preLoaded && Array.isArray(preLoaded) && preLoaded.length > 0) {
+          if (preLoaded.some((p) => p.slug === permissionSlug)) return next();
+          // Pre-loaded but slug not found — still fall through to user-level check below.
+        } else {
+          // Either not pre-loaded or empty — query DB directly.
+          const permissions = await role.getPermissions({ where: { slug: permissionSlug } });
+          if (permissions.length > 0) return next();
         }
       }
 
@@ -56,10 +62,13 @@ const hasAnyPermission = (...permissionSlugs) => {
 
       const role = req.user.role;
       if (role) {
-        const permissions = await role.getPermissions({
-          where: { slug: permissionSlugs },
-        });
-        if (permissions.length > 0) return next();
+        const preLoaded = req.user.role.permissions;
+        if (preLoaded && Array.isArray(preLoaded) && preLoaded.length > 0) {
+          if (preLoaded.some((p) => permissionSlugs.includes(p.slug))) return next();
+        } else {
+          const permissions = await role.getPermissions({ where: { slug: permissionSlugs } });
+          if (permissions.length > 0) return next();
+        }
       }
 
       const userPermissions = req.user.permissions || [];

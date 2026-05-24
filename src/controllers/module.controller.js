@@ -147,7 +147,7 @@ const reorderFields = async (req, res, next) => {
 
 const getMenuTree = async (req, res, next) => {
   try {
-    const menus = await moduleService.getMenuTree(req.companyId, req.roleId);
+    const menus = await moduleService.getMenuTree(req.companyId, req.user);
     return response.success(res, menus);
   } catch (err) {
     next(err);

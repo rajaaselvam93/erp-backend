@@ -7,6 +7,8 @@ const { hasPermission, hasRole } = require('../middleware/rbac.middleware');
 router.use(authenticate);
 
 router.get('/permissions', roleController.getPermissions);
+// Non-paginated list for dropdowns — must be before /:id
+router.get('/all', roleController.getAllRoles);
 router.get('/', hasPermission('roles.read'), roleController.getRoles);
 router.post('/', hasPermission('roles.create'), ...roleController.createRole);
 router.get('/:id', hasPermission('roles.read'), roleController.getRole);

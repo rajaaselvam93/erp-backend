@@ -93,10 +93,14 @@ const logout = async (req, res, next) => {
 
 const me = async (req, res, next) => {
   try {
-    const { User, Role, Company } = require('../models');
+    const { User, Role, Company, Permission } = require('../models');
     const user = await User.findByPk(req.userId, {
       include: [
-        { model: Role, as: 'role', include: ['permissions'] },
+        {
+          model: Role,
+          as: 'role',
+          include: [{ model: Permission, as: 'permissions', through: { attributes: [] } }],
+        },
         { model: Company, as: 'company' },
       ],
     });

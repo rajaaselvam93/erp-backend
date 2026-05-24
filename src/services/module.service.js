@@ -141,9 +141,10 @@ class ModuleService {
   }
 
   /**
-   * Get navigation menu tree for a company
+   * Get navigation menu tree for a company, filtered by user's permissions.
+   * Admin / super-admin always see every menu.
    */
-  async getMenuTree(companyId, roleId = null) {
+  async getMenuTree(companyId, user = null) {
     const where = { companyId, isActive: true, parentId: null };
     const menus = await Menu.findAll({
       where,
@@ -155,11 +156,54 @@ class ModuleService {
           required: false,
           include: [{ model: Menu, as: 'children', required: false }],
         },
-        { model: Module, as: 'module' },
+        { model: Module, as: 'module', required: false },
       ],
       order: [['sort_order', 'ASC'], [{ model: Menu, as: 'children' }, 'sort_order', 'ASC']],
     });
-    return menus;
+
+    // Admins and super-admins see everything
+    const roleSlug = user?.role?.slug;
+    if (!user || roleSlug === 'admin' || roleSlug === 'super-admin') {
+      return menus;
+    }
+
+    // ── Resolve all permission slugs for this user ─────────────────────────────
+    // 1. Try pre-loaded role permissions (from authenticate middleware include).
+    let rolePermSlugs = (user.role?.permissions || []).map((p) => p.slug);
+
+    // 2. If pre-loaded permissions are missing (nested belongsToMany include can
+    //    fail in some Sequelize scenarios), fall back to a direct DB query.
+    if (rolePermSlugs.length === 0) {
+      const roleId = user.roleId || user.role?.id;
+      if (roleId) {
+        const roleWithPerms = await Role.findByPk(roleId, {
+          include: [{ model: Permission, as: 'permissions', through: { attributes: [] } }],
+        });
+        rolePermSlugs = (roleWithPerms?.permissions || []).map((p) => p.slug);
+      }
+    }
+
+    // 3. Extra per-user permissions stored as a JSON array on the user row.
+    const userPermissions = Array.isArray(user.permissions) ? user.permissions : [];
+    const allPermissions = new Set([...rolePermSlugs, ...userPermissions]);
+
+    // Wildcard = full access
+    if (allPermissions.has('*')) return menus;
+
+    // Genuinely no permissions — show nothing dynamic
+    if (allPermissions.size === 0) return [];
+
+    const permList = [...allPermissions];
+
+    // ── Filter menus ───────────────────────────────────────────────────────────
+    // Primary: extract module slug from the menu path (/modules/{slug}).
+    // Fallback: use the eager-loaded module's slug (in case path is non-standard).
+    return menus.filter((menu) => {
+      const pathMatch = menu.path?.match(/^\/modules\/([^/]+)/);
+      const moduleSlug = pathMatch?.[1] ?? menu.module?.slug;
+      if (!moduleSlug) return false; // manual / orphaned menu — hide
+      return permList.some((perm) => perm.startsWith(moduleSlug + '.'));
+    });
   }
 
   // ─── Private Helpers ──────────────────────────────────────────────────────

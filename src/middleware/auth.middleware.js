@@ -13,9 +13,16 @@ const authenticate = async (req, res, next) => {
     const token = authHeader.split(' ')[1];
     const decoded = verifyToken(token);
 
+    const { Permission } = require('../models');
     const user = await User.findOne({
       where: { id: decoded.id, status: 'active' },
-      include: [{ model: Role, as: 'role' }],
+      include: [
+        {
+          model: Role,
+          as: 'role',
+          include: [{ model: Permission, as: 'permissions', through: { attributes: [] } }],
+        },
+      ],
     });
 
     if (!user) {

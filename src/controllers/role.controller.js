@@ -142,4 +142,26 @@ const getPermissions = async (req, res, next) => {
   }
 };
 
-module.exports = { getRoles, getRole, createRole, updateRole, deleteRole, getPermissions };
+const getAllRoles = async (req, res, next) => {
+  try {
+    const { Op } = require('sequelize');
+    // Return roles belonging to the company OR system-level roles (companyId IS NULL)
+    const where = {
+      isActive: true,
+      [Op.or]: [
+        ...(req.companyId ? [{ companyId: req.companyId }] : []),
+        { companyId: null },
+      ],
+    };
+    const roles = await Role.findAll({
+      where,
+      attributes: ['id', 'name', 'slug', 'level', 'isSystem'],
+      order: [['level', 'DESC'], ['name', 'ASC']],
+    });
+    return response.success(res, roles);
+  } catch (err) {
+    next(err);
+  }
+};
+
+module.exports = { getRoles, getRole, createRole, updateRole, deleteRole, getPermissions, getAllRoles };

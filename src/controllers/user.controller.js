@@ -21,7 +21,7 @@ const createUserSchema = Joi.object({
   email: Joi.string().email().required(),
   password: Joi.string().min(8).required(),
   phone: Joi.string().max(30).allow('', null),
-  roleId: Joi.string().uuid().allow(null),
+  roleId: Joi.string().uuid().required(),
   department: Joi.string().max(100).allow('', null),
   designation: Joi.string().max(150).allow('', null),
   employeeId: Joi.string().max(50).allow('', null),

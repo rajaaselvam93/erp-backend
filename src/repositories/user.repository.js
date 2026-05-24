@@ -1,5 +1,5 @@
 const BaseRepository = require('./base.repository');
-const { User, Role, Company } = require('../models');
+const { User, Role, Company, Permission } = require('../models');
 
 class UserRepository extends BaseRepository {
   constructor() {
@@ -10,7 +10,11 @@ class UserRepository extends BaseRepository {
     return User.findOne({
       where: { email: email.toLowerCase() },
       include: [
-        { model: Role, as: 'role', include: ['permissions'] },
+        {
+          model: Role,
+          as: 'role',
+          include: [{ model: Permission, as: 'permissions', through: { attributes: [] } }],
+        },
         { model: Company, as: 'company' },
       ],
     });
@@ -19,7 +23,11 @@ class UserRepository extends BaseRepository {
   async findByIdWithRelations(id) {
     return User.findByPk(id, {
       include: [
-        { model: Role, as: 'role', include: ['permissions'] },
+        {
+          model: Role,
+          as: 'role',
+          include: [{ model: Permission, as: 'permissions', through: { attributes: [] } }],
+        },
         { model: Company, as: 'company' },
       ],
     });
