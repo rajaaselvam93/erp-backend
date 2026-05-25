@@ -1,0 +1,22 @@
+
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "mysql"
+}
+
+model Users {
+  id                 Int       @id @default(autoincrement())
+  name               String    @db.VarChar(100)
+  email              String    @unique @db.VarChar(150)
+  password           String    @db.VarChar(255)
+  role               String    @default("EMPLOYEE") @db.VarChar(50)
+  status             String    @default("ACTIVE") @db.VarChar(50)
+  reset_token        String?   @db.VarChar(500)
+  reset_token_expiry DateTime?
+  created_at         DateTime  @default(now())
+  updated_at         DateTime  @updatedAt
+}
